@@ -1,0 +1,26 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm install *)",
+      "Bash(npm uninstall *)",
+      "Bash(dir \"C:\\\\Users\\\\selso\\\\OneDrive\\\\Desktop\\\\futvibe\" /b)",
+      "PowerShell(cd \"C:\\\\Users\\\\selso\\\\OneDrive\\\\Desktop\\\\futvibe\"; npx tsc --noEmit 2>&1 | Where-Object { $_ -notmatch '\\\\.next/types' } | Select-Object -Last 20)",
+      "PowerShell(cd \"C:\\\\Users\\\\selso\\\\OneDrive\\\\Desktop\\\\futvibe\"; npx tsc --noEmit 2>&1 | Where-Object { $_ -notmatch '\\\\.next/types' } | Select-Object -Last 10)",
+      "PowerShell(cd \"C:\\\\Users\\\\selso\\\\OneDrive\\\\Desktop\\\\futvibe\"; npx tsc --noEmit 2>&1 | Where-Object { $_ -notmatch '\\\\.next/types' })"
+    ],
+    "additionalDirectories": [
+      "C:\\Users\\selso\\OneDrive\\Desktop\\futvibe-api\\src\\Futvibe.Infrastructure\\Persistence\\Repositories",
+      "C:\\Users\\selso\\OneDrive\\Desktop\\futvibe-api\\src\\Futvibe.Infrastructure\\Auth",
+      "C:\\Users\\selso\\OneDrive\\Desktop\\futvibe-api\\src\\Futvibe.Infrastructure",
+      "C:\\Users\\selso\\OneDrive\\Desktop\\futvibe-api\\src\\Futvibe.Application\\Common\\DTOs",
+      "C:\\Users\\selso\\OneDrive\\Desktop\\futvibe-api\\src\\Futvibe.Application\\Common\\Behaviors",
+      "C:\\Users\\selso\\OneDrive\\Desktop\\futvibe-api\\src\\Futvibe.Application\\Auth\\Commands\\Login",
+      "C:\\Users\\selso\\OneDrive\\Desktop\\futvibe-api\\src\\Futvibe.Application",
+      "C:\\Users\\selso\\OneDrive\\Desktop\\futvibe-api\\src\\Futvibe.WebApi\\Controllers",
+      "C:\\Users\\selso\\OneDrive\\Desktop\\futvibe-api\\src\\Futvibe.WebApi\\Middleware",
+      "C:\\Users\\selso\\OneDrive\\Desktop\\futvibe-api\\src\\Futvibe.WebApi\\Extensions",
+      "C:\\Users\\selso\\OneDrive\\Desktop\\futvibe-api\\src\\Futvibe.WebApi",
+      "C:\\Users\\selso\\OneDrive\\Desktop\\futvibe-api"
+    ]
+  }
+}
