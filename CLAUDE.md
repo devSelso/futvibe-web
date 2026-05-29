@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # CLAUDE.md — Futvibe Frontend
 
 ## Visão Geral
@@ -254,3 +255,6 @@ Login de teste: `teste@futvibe.app` / `123456`
 | Pós-criar partida | `router.push('/')` → reload server component |
 | Participante user data | Embedded no `GET /matches/:id` — sem N+1 |
 | Enum serialização | Backend envia strings lowercase — compatível com tipos TS |
+=======
+
+>>>>>>> 5eec778a859a0ee0509972e847210f359ddbdfc9
