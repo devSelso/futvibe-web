@@ -1,14 +1,12 @@
 ﻿'use client'
 
 import { useState } from 'react'
+import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { IconEye, IconEyeOff, IconLogin } from '@tabler/icons-react'
 import { Button } from '@/lib/components/ui/button'
 import { login } from '@/features/profile/services/auth-service'
 import { loginSchema } from '@/features/auth/form-schemas/login-schema'
-
-const TEST_EMAIL = 'teste@futvibe.app'
-const TEST_PASSWORD = '123456'
 
 export default function LoginPage() {
   const router = useRouter()
@@ -45,13 +43,6 @@ export default function LoginPage() {
     } finally {
       setLoading(false)
     }
-  }
-
-  function fillTestUser() {
-    setEmail(TEST_EMAIL)
-    setPassword(TEST_PASSWORD)
-    setError(null)
-    setFieldErrors({})
   }
 
   return (
@@ -114,27 +105,12 @@ export default function LoginPage() {
         </Button>
       </form>
 
-      <div className="w-full max-w-xs">
-        <div className="relative flex items-center gap-3 mb-3">
-          <div className="flex-1 h-px bg-border" />
-          <span className="text-xs text-muted-foreground">ou</span>
-          <div className="flex-1 h-px bg-border" />
-        </div>
-
-        <button
-          type="button"
-          onClick={fillTestUser}
-          className="w-full h-11 rounded-lg border border-dashed border-border text-sm text-muted-foreground hover:border-primary hover:text-primary transition-colors"
-        >
-          Usar usuário de teste
-        </button>
-
-        <p className="text-xs text-muted-foreground text-center mt-3">
-          <span className="font-mono bg-muted px-1.5 py-0.5 rounded">{TEST_EMAIL}</span>
-          {' · '}
-          <span className="font-mono bg-muted px-1.5 py-0.5 rounded">{TEST_PASSWORD}</span>
-        </p>
-      </div>
+      <p className="text-sm text-muted-foreground">
+        Não tem conta?{' '}
+        <Link href="/register" className="text-primary font-medium">
+          Criar conta
+        </Link>
+      </p>
     </div>
   )
 }

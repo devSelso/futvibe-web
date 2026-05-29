@@ -1,4 +1,4 @@
-# CLAUDE.md — Futvibe
+# CLAUDE.md — Futvibe Frontend
 
 ## Visão Geral
 
@@ -6,7 +6,9 @@ PWA mobile-first para organizar partidas casuais de futevôlei.
 
 Fluxo principal: criar partida → compartilhar link → preencher vagas → aprovar jogadores.
 
-MVP apenas frontend com dados mockados. Sem backend, sem chat, sem pagamentos.
+**Status atual:** frontend + backend implementados e integrados. Autenticação JWT real, banco PostgreSQL via Supabase, API REST em ASP.NET Core 9.
+
+Repositório do backend: `futvibe-api/` (mesmo nível — ver `BACK-END.md` para contribuir).
 
 ---
 
@@ -16,49 +18,64 @@ MVP apenas frontend com dados mockados. Sem backend, sem chat, sem pagamentos.
 - React 19+
 - TypeScript (strict mode)
 - TailwindCSS v4
-- shadcn/ui
+- shadcn/ui (Base UI)
 - Tabler Icons (`@tabler/icons-react`)
 - TanStack Query (`@tanstack/react-query`)
 - Zod (validação de formulários)
-- Axios (cliente HTTP)
+- Axios (cliente HTTP — camada `api/`)
 
 ---
 
 ## Estrutura de Pastas
 
 ```
-/actions              # Server Actions (funções assíncronas chamadas do cliente)
-/api                  # Comunicação com APIs externas
-/app                  # Rotas (cada pasta/arquivo = uma rota) — pages thin, só chamam componentes
+/actions              # Server Actions (wrappers — auth/matches)
+/api                  # Camada HTTP — Axios → API real
+  client.ts           # Instância Axios + interceptor JWT + handler 401
+  auth.ts             # POST /api/auth/login
+  matches.ts          # CRUD de partidas
+  users.ts            # GET/PUT usuários
+  banners.ts          # GET banners
+/app                  # Rotas App Router — pages thin, só chamam componentes
+  (auth)/login        # Tela de login
+  (main)/             # Rotas protegidas (proxy verifica cookie)
+    page.tsx          # Feed
+    match/[id]        # Detalhe da partida
+    match/create      # Criar partida
+    profile           # Perfil do usuário
+    notifications     # Notificações (placeholder)
 /features             # Lógica de negócio por módulo
+  /auth
+    /form-schemas     # loginSchema (Zod)
   /matches
-    /components
+    /components       # match-card, participant-list, match-actions, etc.
     /enums
-    /form-schemas     # Schemas Zod
-    /hooks
+    /form-schemas     # createMatchSchema (Zod)
+    /hooks            # use-matches, use-match, use-create-match, use-join-match, use-update-participant
     /providers
-    /services
-    /types
+    /services         # match-service.ts → chama api/matches.ts
+    /types            # Match, Participant, MatchFilters, enums
   /profile
-    /components
+    /components       # edit-profile-modal, logout-button
     /enums
-    /form-schemas
-    /hooks
+    /form-schemas     # editProfileSchema (Zod)
+    /hooks            # use-current-user, use-update-profile
     /providers
-    /services
-    /types
+    /services         # user-service.ts, auth-service.ts → chama api/users.ts e api/auth.ts
+    /types            # User
   /promotions
-    /components
-    /services
-    /types
+    /services         # banner-service.ts → chama api/banners.ts
+    /types            # BannerSlide
 /lib                  # Recursos compartilhados
-  /components         # Componentes reutilizáveis globais
-  /hooks              # Hooks reutilizáveis globais
-  /providers          # Providers globais (QueryProvider, ToastProvider, etc.)
-  /types              # Tipos globais
-  /utils              # Funções utilitárias
-/mocks                # Dados mockados simulando API
-/public               # Arquivos estáticos
+  /components         # Banner, DarkModeToggle, BottomNav, ui/*
+  /hooks              # hooks globais
+  /providers          # QueryProvider, ToastProvider
+  /types              # Re-exports de features
+  auth.ts             # saveSession, getToken, getSession, clearSession
+  constants.ts        # SESSION_COOKIE
+  utils.ts            # cn()
+/mocks                # Dados mockados (NÃO mais usados no fluxo principal)
+/public               # Estáticos (banners/, icons/, manifest.json)
 ```
 
 ---
@@ -79,12 +96,34 @@ MVP apenas frontend com dados mockados. Sem backend, sem chat, sem pagamentos.
 
 - **SOLID** e **Clean Architecture**: separar regras de negócio da UI
 - Pages devem ser thin — apenas importar e renderizar componentes de feature
-- Componentes de UI não acessam mocks diretamente — via hooks/services
-- Mocks simulam delay de API (300–600ms) — troca futura só na camada `api/`
+- Componentes de UI não chamam `api/` diretamente — usam hooks/services
 - TanStack Query para data fetching — `useQuery` em hooks de feature, `useMutation` para ações
 - Zod valida todos os formulários — schemas em `features/[módulo]/form-schemas/`
-- Server Actions em `actions/` para mutações server-side
-- Camada `api/` isola chamadas HTTP (Axios) — hoje aponta para mocks, amanhã para API real
+- Camada `api/` isola chamadas HTTP (Axios) — toda mudança de endpoint fica aqui
+
+### Fluxo de dados
+
+```
+Component/Page
+  → Hook (useQuery/useMutation)
+    → Service (features/*/services/)
+      → API layer (api/*.ts)
+        → Axios client (api/client.ts)
+          → Backend REST API
+```
+
+---
+
+## Autenticação
+
+- JWT Bearer — token gerado pelo backend (30 dias)
+- `lib/auth.ts` gerencia storage:
+  - `futvibe_token` (localStorage) — JWT para requests
+  - `futvibe_user_id` (localStorage) — userId para componentes client
+  - Cookie `futvibe_uid` — para Server Components / proxy de rota
+- `api/client.ts` injeta `Authorization: Bearer <token>` em todas requests
+- 401 response → `clearSession()` + redirect `/login`
+- Proxy em `proxy.ts` protege rotas `(main)/` — verifica cookie
 
 ---
 
@@ -94,10 +133,11 @@ MVP apenas frontend com dados mockados. Sem backend, sem chat, sem pagamentos.
 - Sem Redux/MobX
 - Sem CSS customizado — utility classes Tailwind
 - Componentes pequenos, focados, reutilizáveis
+- Sem comentários óbvios — código auto-documentado
 
 ---
 
-## Convenções Next.js 16 (IMPORTANTE)
+## Convenções Next.js 16
 
 - `params` e `searchParams` em pages/layouts são `Promise` — sempre `await params`
 - Usar `PageProps<'/rota'>` e `LayoutProps<'/rota'>` para tipagem (globals, sem import)
@@ -105,17 +145,25 @@ MVP apenas frontend com dados mockados. Sem backend, sem chat, sem pagamentos.
 
 ---
 
-## Telas do MVP
+## Variáveis de Ambiente
 
-| Tela | Rota |
-|---|---|
-| Feed de partidas | `/` |
-| Detalhes da partida | `/match/[id]` |
-| Criar partida | `/match/create` |
-| Perfil | `/profile` |
-| Login (UI apenas) | `/login` |
+```env
+# .env.local
+NEXT_PUBLIC_API_URL=http://localhost:5122   # dev
+# produção: URL do Railway
+```
 
-Navegação inferior no mobile com 4 tabs: Feed, Criar, Notificações, Perfil.
+---
+
+## Telas
+
+| Tela | Rota | Auth |
+|---|---|---|
+| Feed de partidas | `/` | ✓ |
+| Detalhes da partida | `/match/[id]` | ✓ |
+| Criar partida | `/match/create` | ✓ |
+| Perfil | `/profile` | ✓ |
+| Login | `/login` | — |
 
 ---
 
@@ -130,18 +178,20 @@ interface Match {
   id: string
   title: string
   location: string
-  date: string
-  time: string
+  date: string        // 'yyyy-MM-dd'
+  time: string        // 'HH:mm'
   level: MatchLevel
   pricePerPlayer: number
   maxPlayers: number
   visibility: MatchVisibility
   participants: Participant[]
+  hostId?: string     // presente no MatchDto do backend
 }
 
 interface Participant {
   userId: string
   status: ParticipantStatus
+  user?: User         // embeds do backend (GET /matches/:id)
 }
 
 interface User {
@@ -165,137 +215,42 @@ interface User {
 
 **Modo híbrido (padrão):** descoberta pública + link com entrada automática + solicitações públicas precisam aprovação.
 
----
-
-## Requisitos PWA
-
-- `manifest.json` configurado
-- Responsivo mobile-first
-- Botões grandes, áreas de toque confortáveis
-- CTA fixo no mobile
-- Preparado para offline (estrutura)
+Lógica reside no backend (`Match.DetermineStatusForNewJoiner()`).
 
 ---
 
-## O que NÃO construir no MVP
+## Rodar Localmente
 
-- Backend ou API real
-- Chat
+```bash
+# backend (outro terminal)
+cd futvibe-api && dotnet run --project src/Futvibe.WebApi
+
+# frontend
+npm run dev
+```
+
+Login de teste: `teste@futvibe.app` / `123456`
+
+---
+
+## O que NÃO construir agora
+
+- Chat em tempo real
 - Pagamentos
 - Rankings ou campeonatos
 - Integração com mapas
-- Autenticação real
+- Push notifications reais
+- Upload de avatar (URL externa apenas)
 
 ---
 
-## Objetivo
-
-Validar usabilidade e fluxo. O usuário deve conseguir criar e compartilhar uma partida em menos de 30 segundos.
-
----
-
-## Decisões de Arquitetura (aprovadas)
+## Decisões de Arquitetura
 
 | Tema | Decisão |
 |------|---------|
+| Auth | JWT 30 dias, localStorage + cookie para SSR |
 | Loading | Skeleton via Suspense — `loading.tsx` por rota |
-| Filtros | Simula query no service — `getMatches({ level, paid })` |
-| Banner | `bannerService` com delay simulado — troca fácil por API |
+| Filtros | `getMatches({ level?, paid?, page?, limit? })` — query params no backend |
 | Pós-criar partida | `router.push('/')` → reload server component |
-| Paginação | Service recebe `{ page, limit }` desde já |
-
----
-
-## TODO — Refatoração para Padrão Cervantes
-
-> Status: `[ ]` pendente · `[x]` feito · `[-]` em progresso
-
-### Fase 1 — Dependências
-- [x] Instalar `@tanstack/react-query`, `zod`, `axios`, `@tabler/icons-react`
-- [x] Remover `lucide-react` após migração de ícones (Fase 7)
-
-### Fase 2 — Reorganização de `lib/`
-- [x] Criar estrutura `lib/components/`, `lib/hooks/`, `lib/providers/`, `lib/types/`, `lib/utils/`
-- [x] Mover `components/` (globais) → `lib/components/`
-- [x] Mover `hooks/` → `lib/hooks/`
-- [x] Mover `contexts/` → `lib/providers/`
-- [x] Mover `types/index.ts` → `lib/types/index.ts`
-- [x] Atualizar todos os imports após movimentação
-
-### Fase 3 — Estrutura interna das features
-- [x] Adicionar `enums/`, `form-schemas/`, `types/`, `providers/` em `features/matches/`
-- [x] Adicionar `enums/`, `form-schemas/`, `types/`, `providers/` em `features/profile/`
-- [x] Mover tipos de feature de `lib/types/` para `features/[módulo]/types/`
-- [x] Criar `actions/` e `api/` (estrutura base)
-
-### Fase 4 — Zod (validação de formulários)
-- [x] Schema Zod para criação de partida — `features/matches/form-schemas/create-match-schema.ts`
-- [x] Schema Zod para editar perfil — `features/profile/form-schemas/edit-profile-schema.ts`
-- [x] Schema Zod para login — `features/auth/form-schemas/login-schema.ts`
-- [x] Aplicar validação nos formulários existentes
-
-### Fase 5 — TanStack Query
-- [x] Adicionar `QueryProvider` em `lib/providers/query-provider.tsx`
-- [x] Criar `useMatches` hook com `useQuery` — `features/matches/hooks/use-matches.ts`
-- [x] Criar `useMatch` hook com `useQuery` — `features/matches/hooks/use-match.ts`
-- [x] Criar `useCreateMatch` mutation — `features/matches/hooks/use-create-match.ts`
-- [x] Criar `useJoinMatch` mutation — `features/matches/hooks/use-join-match.ts`
-- [x] Criar `useUpdateParticipant` mutation — `features/matches/hooks/use-update-participant.ts`
-- [x] Criar `useCurrentUser` com `useQuery` — `features/profile/hooks/use-current-user.ts`
-- [x] Criar `useUpdateProfile` mutation — `features/profile/hooks/use-update-profile.ts`
-
-### Fase 6 — Server Actions
-- [x] `actions/match-actions.ts` — `createMatch`, `joinMatch`, `updateParticipantStatus`
-- [x] `actions/auth-actions.ts` — `login`, `logout`
-
-### Fase 7 — Ícones (Lucide → Tabler)
-- [x] Substituir ícones em `lib/components/` e `features/`
-- [x] Substituir ícones nas pages (`app/`)
-
-### Fase 8 — Nomenclatura kebab-case
-- [x] Renomear arquivos de componentes: `MatchCard.tsx` → `match-card.tsx`
-- [x] Renomear arquivos de hooks: `useCurrentUser.ts` → `use-current-user.ts`
-- [x] Atualizar imports após renomeação
-
----
-
-## Backlog de Features (funcionalidades — já implementadas)
-
-### Auth & Sessão
-- [x] Proxy (`proxy.ts`) — proteger rotas `(main)` → redirect `/login` se sem sessão
-- [x] `useCurrentUser` hook — lê `localStorage` em client components
-- [x] Logout no perfil — `clearSession()` + `router.push('/login')`
-
-### Feed
-- [x] Skeleton loading — `app/(main)/loading.tsx` com shimmer cards
-- [x] Filtros com simula query — `getMatches({ level?, paid? })` no service
-- [x] UI de filtros — chips horizontais no topo do feed
-- [ ] Pull-to-refresh — opcional, avaliar depois
-
-### Banner
-- [x] `bannerService` com delay simulado
-- [x] Mock `mocks/banners.ts` — 3 slides placeholder
-
-### Partida
-- [x] Web Share API — botão compartilhar em `/match/[id]`
-- [x] Host view — aprovar/recusar participantes `pending`
-- [x] Toast feedback — ao solicitar vaga
-- [x] Copiar link — partida privada
-- [x] Tela de sucesso — após criar partida
-
-### Criação de Partida
-- [x] Validação de data mínima
-- [x] Preview antes de publicar
-
-### Perfil
-- [x] Editar perfil — salva em localStorage
-- [x] Histórico de partidas
-
-### UX / PWA
-- [x] Toast/snackbar global — Context + portal
-- [x] Error boundary por rota
-- [x] Dark mode toggle — localStorage
-
-### Infraestrutura de Mock
-- [x] Paginação no service — `{ page, limit }`
-- [x] Seed de dados — `seedMatches()` com 7 partidas realistas
+| Participante user data | Embedded no `GET /matches/:id` — sem N+1 |
+| Enum serialização | Backend envia strings lowercase — compatível com tipos TS |

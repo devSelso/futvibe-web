@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect } from 'react'
+import { IconAlertTriangle } from '@tabler/icons-react'
 import { Button } from '@/lib/components/ui/button'
 
 export default function Error({
@@ -16,7 +17,7 @@ export default function Error({
 
   return (
     <div className="flex flex-col items-center justify-center min-h-[60vh] px-4 gap-4 text-center">
-      <p className="text-4xl">⚠️</p>
+      <IconAlertTriangle size={40} className="text-muted-foreground" />
       <h2 className="font-semibold text-lg">Algo deu errado</h2>
       <p className="text-sm text-muted-foreground">Tente novamente ou volte ao feed.</p>
       <Button onClick={reset}>Tentar novamente</Button>

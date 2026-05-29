@@ -1,22 +1,29 @@
 'use client'
 
 import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { Button } from '@/lib/components/ui/button'
-import { joinMatch } from '@/features/matches/services/match-service'
+import { joinMatch, leaveMatch } from '@/features/matches/services/match-service'
 import { IconCircleCheck, IconAlertCircle } from '@tabler/icons-react'
+import type { ParticipantStatus } from '@/features/matches/types'
 
 interface MatchActionsProps {
   matchId: string
   spotsLeft: number
-  isAlreadyParticipant: boolean
+  currentParticipantStatus?: ParticipantStatus
 }
 
 type ToastState = { type: 'success' | 'error'; message: string } | null
 
-export function MatchActions({ matchId, spotsLeft, isAlreadyParticipant }: MatchActionsProps) {
+const LEAVABLE_STATUSES: ParticipantStatus[] = ['confirmed', 'pending', 'waitlist']
+
+export function MatchActions({ matchId, spotsLeft, currentParticipantStatus }: MatchActionsProps) {
+  const router = useRouter()
   const [loading, setLoading] = useState(false)
-  const [done, setDone] = useState(isAlreadyParticipant)
   const [toast, setToast] = useState<ToastState>(null)
+  const [joined, setJoined] = useState(!!currentParticipantStatus)
+
+  const canLeave = currentParticipantStatus && LEAVABLE_STATUSES.includes(currentParticipantStatus)
 
   function showToast(t: ToastState) {
     setToast(t)
@@ -27,7 +34,7 @@ export function MatchActions({ matchId, spotsLeft, isAlreadyParticipant }: Match
     setLoading(true)
     try {
       await joinMatch(matchId)
-      setDone(true)
+      setJoined(true)
       showToast({
         type: 'success',
         message: spotsLeft > 0 ? 'Solicitação enviada!' : 'Você entrou na lista de espera.',
@@ -35,6 +42,17 @@ export function MatchActions({ matchId, spotsLeft, isAlreadyParticipant }: Match
     } catch {
       showToast({ type: 'error', message: 'Erro ao solicitar vaga. Tente novamente.' })
     } finally {
+      setLoading(false)
+    }
+  }
+
+  async function handleLeave() {
+    setLoading(true)
+    try {
+      await leaveMatch(matchId)
+      router.refresh()
+    } catch {
+      showToast({ type: 'error', message: 'Erro ao desistir. Tente novamente.' })
       setLoading(false)
     }
   }
@@ -58,20 +76,32 @@ export function MatchActions({ matchId, spotsLeft, isAlreadyParticipant }: Match
         </div>
       )}
 
-      <Button
-        className="w-full h-12 text-base font-semibold"
-        size="lg"
-        disabled={loading || done}
-        onClick={done ? undefined : handleJoin}
-      >
-        {done
-          ? 'Solicitação enviada ✓'
-          : loading
-          ? 'Aguarde...'
-          : spotsLeft > 0
-          ? 'Solicitar Vaga'
-          : 'Entrar na Lista de Espera'}
-      </Button>
+      {canLeave ? (
+        <Button
+          variant="outline"
+          className="w-full h-12 text-base font-semibold text-destructive border-destructive hover:bg-destructive/5"
+          size="lg"
+          disabled={loading}
+          onClick={handleLeave}
+        >
+          {loading ? 'Aguarde...' : 'Desistir da partida'}
+        </Button>
+      ) : (
+        <Button
+          className="w-full h-12 text-base font-semibold"
+          size="lg"
+          disabled={loading || joined}
+          onClick={joined ? undefined : handleJoin}
+        >
+          {joined
+            ? 'Solicitação enviada'
+            : loading
+            ? 'Aguarde...'
+            : spotsLeft > 0
+            ? 'Solicitar Vaga'
+            : 'Entrar na Lista de Espera'}
+        </Button>
+      )}
     </div>
   )
 }

@@ -1,22 +1,17 @@
-﻿import Link from 'next/link'
-import { IconCirclePlus } from '@tabler/icons-react'
+import Link from 'next/link'
+import { IconCirclePlus, IconBallVolleyball } from '@tabler/icons-react'
 import { fetchMatches } from '@/features/matches/services/match-service'
 import { fetchBanners } from '@/features/promotions/services/banner-service'
 import { MatchCard } from '@/features/matches/components/match-card'
-import { FeedFilters } from '@/features/matches/components/feed-filters'
+import { LocationFilter } from '@/features/matches/components/location-filter'
 import { Banner } from '@/lib/components/banner'
-import type { MatchLevel } from '@/lib/types'
 
 export default async function FeedPage(props: PageProps<'/'>) {
   const searchParams = await props.searchParams
-  const level = searchParams.level as MatchLevel | undefined
-  const paid =
-    searchParams.paid === 'true' ? true
-    : searchParams.paid === 'false' ? false
-    : undefined
+  const location = searchParams.location as string | undefined
 
   const [matches, banners] = await Promise.all([
-    fetchMatches({ level, paid }),
+    fetchMatches({ location }),
     fetchBanners(),
   ])
 
@@ -31,7 +26,7 @@ export default async function FeedPage(props: PageProps<'/'>) {
 
       <Banner slides={banners} />
 
-      <FeedFilters activeLevel={level} activePaid={paid} />
+      <LocationFilter value={location} />
 
       <div>
         <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-3">
@@ -40,11 +35,13 @@ export default async function FeedPage(props: PageProps<'/'>) {
 
         {matches.length === 0 ? (
           <div className="flex flex-col items-center gap-4 py-14 text-center">
-            <span className="text-4xl">🏐</span>
+            <IconBallVolleyball size={40} className="text-muted-foreground" />
             <div>
               <p className="font-semibold">Nenhuma partida por aqui</p>
               <p className="text-sm text-muted-foreground mt-1">
-                Seja o primeiro a criar uma partida na sua região.
+                {location
+                  ? `Nenhuma partida encontrada em "${location}".`
+                  : 'Seja o primeiro a criar uma partida na sua região.'}
               </p>
             </div>
             <Link

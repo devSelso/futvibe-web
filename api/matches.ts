@@ -3,8 +3,7 @@ import type { Match, MatchFilters, ParticipantStatus } from '@/features/matches/
 
 export async function apiGetMatches(filters?: MatchFilters): Promise<Match[]> {
   const params: Record<string, unknown> = {}
-  if (filters?.level) params.level = filters.level
-  if (filters?.paid !== undefined) params.paid = filters.paid
+  if (filters?.location) params.location = filters.location
   if (filters?.page) params.page = filters.page
   if (filters?.limit) params.limit = filters.limit
   const { data } = await client.get<Match[]>('/matches', { params })
@@ -30,8 +29,24 @@ export async function apiCreateMatch(payload: Omit<Match, 'id' | 'participants'>
   return data
 }
 
+export async function apiEditMatch(matchId: string, payload: Omit<Match, 'id' | 'participants' | 'status' | 'hostId' | 'participantCount'>): Promise<void> {
+  await client.patch(`/matches/${matchId}`, payload)
+}
+
 export async function apiJoinMatch(matchId: string): Promise<void> {
   await client.post(`/matches/${matchId}/join`)
+}
+
+export async function apiLeaveMatch(matchId: string): Promise<void> {
+  await client.delete(`/matches/${matchId}/leave`)
+}
+
+export async function apiDeleteMatch(matchId: string): Promise<void> {
+  await client.delete(`/matches/${matchId}`)
+}
+
+export async function apiCancelMatch(matchId: string): Promise<void> {
+  await client.post(`/matches/${matchId}/cancel`)
 }
 
 export async function apiUpdateParticipantStatus(
@@ -40,4 +55,25 @@ export async function apiUpdateParticipantStatus(
   status: ParticipantStatus
 ): Promise<void> {
   await client.patch(`/matches/${matchId}/participants/${userId}`, { status })
+}
+
+export async function apiValidatePresence(
+  matchId: string,
+  validations: { userId: string; present: boolean }[]
+): Promise<void> {
+  await client.patch(`/matches/${matchId}/validate-presence`, { validations })
+}
+
+export interface ActivityLogEntry {
+  id: string
+  userId: string
+  userName: string
+  userAvatar?: string
+  action: string
+  createdAt: string
+}
+
+export async function apiGetMatchActivity(matchId: string): Promise<ActivityLogEntry[]> {
+  const { data } = await client.get<ActivityLogEntry[]>(`/matches/${matchId}/activity`)
+  return data
 }

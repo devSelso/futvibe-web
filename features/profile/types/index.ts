@@ -8,4 +8,5 @@ export interface User {
   bio?: string
   presenceScore: number
   matchesPlayed: number
+  averageRating?: number
 }

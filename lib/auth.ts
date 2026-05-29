@@ -19,6 +19,10 @@ export function getSession(): string | null {
   return localStorage.getItem(USER_ID_KEY)
 }
 
+export function updateToken(token: string): void {
+  localStorage.setItem(TOKEN_KEY, token)
+}
+
 export function clearSession(): void {
   localStorage.removeItem(TOKEN_KEY)
   localStorage.removeItem(USER_ID_KEY)

@@ -1,10 +1,12 @@
 ﻿'use client'
 
 import { useState, useEffect } from 'react'
-import { IconPencil, IconCalendar, IconMapPin } from '@tabler/icons-react'
+import { IconPencil, IconCalendar, IconMapPin, IconChevronDown, IconChevronUp } from '@tabler/icons-react'
+import { StarRating } from '@/lib/components/star-rating'
 import { LogoutButton } from '@/features/profile/components/logout-button'
 import { EditProfileModal } from '@/features/profile/components/edit-profile-modal'
 import { DarkModeToggle } from '@/lib/components/dark-mode-toggle'
+import { ActivityLog } from '@/features/matches/components/activity-log'
 import { useCurrentUser } from '@/features/profile/hooks/use-current-user'
 import { fetchUserMatches } from '@/features/matches/services/match-service'
 import type { Match } from '@/lib/types'
@@ -22,6 +24,7 @@ export default function ProfilePage() {
   const { user, loading, refresh } = useCurrentUser()
   const [editOpen, setEditOpen] = useState(false)
   const [history, setHistory] = useState<Match[]>([])
+  const [expandedActivity, setExpandedActivity] = useState<string | null>(null)
 
   useEffect(() => {
     if (!user) return
@@ -79,7 +82,7 @@ export default function ProfilePage() {
         )}
       </div>
 
-      <div className="grid grid-cols-2 gap-3 mb-6">
+      <div className="grid grid-cols-2 gap-3 mb-4">
         <div className="bg-card border border-border rounded-xl p-4 text-center">
           <p className="text-2xl font-bold">{user.matchesPlayed}</p>
           <p className="text-xs text-muted-foreground mt-1">Partidas jogadas</p>
@@ -90,6 +93,13 @@ export default function ProfilePage() {
         </div>
       </div>
 
+      {user.averageRating != null && (
+        <div className="bg-card border border-border rounded-xl p-4 flex items-center justify-between mb-6">
+          <p className="text-xs text-muted-foreground">Avaliação média</p>
+          <StarRating value={user.averageRating} />
+        </div>
+      )}
+
       {history.length > 0 && (
         <div className="mb-6">
           <h3 className="font-semibold text-sm mb-3">Histórico</h3>
@@ -97,8 +107,15 @@ export default function ProfilePage() {
             {history.map((m) => {
               const participation = m.participants.find((p) => p.userId === user.id)
               return (
-                <div key={m.id} className="bg-card border border-border rounded-xl p-3 space-y-1">
-                  <p className="font-medium text-sm">{m.title}</p>
+                <div key={m.id} className="bg-card border border-border rounded-xl p-3 space-y-2">
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="font-medium text-sm truncate">{m.title}</p>
+                    {m.status === 'cancelled' && (
+                      <span className="shrink-0 px-2 py-0.5 rounded-full bg-destructive/10 text-destructive text-xs font-medium">
+                        Cancelada
+                      </span>
+                    )}
+                  </div>
                   <div className="flex items-center gap-3 text-xs text-muted-foreground">
                     <span className="flex items-center gap-1">
                       <IconCalendar size={11} />
@@ -109,10 +126,26 @@ export default function ProfilePage() {
                       {m.location}
                     </span>
                   </div>
-                  {participation && (
+                  {participation && m.status !== 'cancelled' && (
                     <span className="inline-block px-2 py-0.5 rounded-full bg-secondary text-secondary-foreground text-xs">
                       {statusLabel[participation.status]}
                     </span>
+                  )}
+                  {m.hostId === user.id && (
+                    <button
+                      type="button"
+                      onClick={() => setExpandedActivity(expandedActivity === m.id ? null : m.id)}
+                      className="flex items-center gap-1 text-xs text-primary font-medium mt-1"
+                    >
+                      {expandedActivity === m.id ? (
+                        <><IconChevronUp size={13} /> Fechar</>
+                      ) : (
+                        <><IconChevronDown size={13} /> Saiba mais</>
+                      )}
+                    </button>
+                  )}
+                  {expandedActivity === m.id && (
+                    <ActivityLog matchId={m.id} />
                   )}
                 </div>
               )

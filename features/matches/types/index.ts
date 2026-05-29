@@ -1,6 +1,7 @@
 export type MatchLevel = 'beginner' | 'intermediate' | 'advanced'
 export type MatchVisibility = 'public' | 'private' | 'hybrid'
-export type ParticipantStatus = 'host' | 'confirmed' | 'pending' | 'rejected' | 'waitlist'
+export type MatchStatus = 'scheduled' | 'pendingvalidation' | 'closed' | 'cancelled'
+export type ParticipantStatus = 'host' | 'confirmed' | 'pending' | 'rejected' | 'waitlist' | 'left'
 
 export interface Participant {
   userId: string
@@ -18,12 +19,14 @@ export interface Match {
   pricePerPlayer: number
   maxPlayers: number
   visibility: MatchVisibility
+  status: MatchStatus
+  hostId?: string
+  participantCount?: number
   participants: Participant[]
 }
 
 export interface MatchFilters {
-  level?: MatchLevel
-  paid?: boolean
+  location?: string
   page?: number
   limit?: number
 }

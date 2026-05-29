@@ -1,16 +1,14 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, use } from 'react'
 import { useRouter } from 'next/navigation'
-import {
-  IconArrowLeft, IconMapPin, IconCalendar, IconClock,
-  IconUsers, IconCurrencyDollar, IconLink, IconCheck, IconArrowRight,
-} from '@tabler/icons-react'
+import { IconArrowLeft } from '@tabler/icons-react'
 import Link from 'next/link'
 import { Button } from '@/lib/components/ui/button'
-import { submitNewMatch } from '@/features/matches/services/match-service'
+import { editMatch, fetchMatchById } from '@/features/matches/services/match-service'
 import { createMatchSchema } from '@/features/matches/form-schemas/create-match-schema'
 import type { MatchLevel, MatchVisibility } from '@/lib/types'
+import { useEffect } from 'react'
 
 const LEVEL_LABELS: Record<MatchLevel, string> = {
   beginner: 'Iniciante',
@@ -30,43 +28,49 @@ const VISIBILITY_DESC: Record<MatchVisibility, string> = {
   private: 'Só acessível via link. Entrada automática.',
 }
 
-type Step = 'form' | 'preview' | 'created'
-
 const inputClass =
   'w-full h-12 px-3 rounded-lg border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring'
 
-export default function CreateMatchPage() {
+export default function EditMatchPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = use(params)
   const router = useRouter()
-  const [step, setStep] = useState<Step>('form')
   const [loading, setLoading] = useState(false)
-  const [copied, setCopied] = useState(false)
-  const [createdMatchId, setCreatedMatchId] = useState<string | null>(null)
+  const [fetching, setFetching] = useState(true)
   const [errors, setErrors] = useState<Record<string, string>>({})
-  const [form, setForm] = useState<{
-    title: string
-    location: string
-    date: string
-    time: string
-    level: MatchLevel | ''
-    pricePerPlayer: number
-    maxPlayers: number
-    visibility: MatchVisibility | ''
-  }>({
+  const [form, setForm] = useState({
     title: '',
     location: '',
     date: '',
     time: '',
-    level: '',
+    level: 'intermediate' as MatchLevel,
     pricePerPlayer: 0,
     maxPlayers: 6,
-    visibility: '',
+    visibility: 'hybrid' as MatchVisibility,
   })
 
   const today = new Date().toISOString().split('T')[0]
   const set = (key: keyof typeof form, value: string | number) =>
     setForm((prev) => ({ ...prev, [key]: value }))
 
-  function handleFormSubmit(e: React.FormEvent<HTMLFormElement>) {
+  useEffect(() => {
+    fetchMatchById(id).then((match) => {
+      if (match) {
+        setForm({
+          title: match.title,
+          location: match.location,
+          date: match.date,
+          time: match.time,
+          level: match.level,
+          pricePerPlayer: match.pricePerPlayer,
+          maxPlayers: match.maxPlayers,
+          visibility: match.visibility,
+        })
+      }
+      setFetching(false)
+    })
+  }, [id])
+
+  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
     const result = createMatchSchema.safeParse(form)
     if (!result.success) {
@@ -79,155 +83,27 @@ export default function CreateMatchPage() {
       return
     }
     setErrors({})
-    setStep('preview')
-  }
-
-  async function handleConfirm() {
     setLoading(true)
     try {
-      const match = await submitNewMatch(form)
-      setCreatedMatchId(match.id)
-      setStep('created')
+      await editMatch(id, result.data)
+      router.push(`/match/${id}`)
+      router.refresh()
     } finally {
       setLoading(false)
     }
   }
 
-  async function handleCopyLink() {
-    if (!createdMatchId) return
-    const url = `${window.location.origin}/match/${createdMatchId}`
-    await navigator.clipboard.writeText(url)
-    setCopied(true)
-    setTimeout(() => setCopied(false), 2000)
-  }
-
-  if (step === 'created' && createdMatchId) {
-    return (
-      <div className="flex flex-col min-h-screen items-center justify-center px-6 gap-6 text-center">
-        <div className="flex flex-col items-center gap-2">
-          <div className="w-14 h-14 rounded-full bg-primary/10 flex items-center justify-center">
-            <IconCheck size={28} className="text-primary" />
-          </div>
-          <h1 className="text-xl font-bold mt-2">Partida criada!</h1>
-          <p className="text-sm text-muted-foreground">{form.title}</p>
-        </div>
-
-        <div className="w-full max-w-xs space-y-3">
-          <Button
-            onClick={handleCopyLink}
-            variant="outline"
-            className="w-full h-12 gap-2 font-semibold"
-          >
-            {copied ? (
-              <>
-                <IconCheck size={17} className="text-primary" />
-                Link copiado!
-              </>
-            ) : (
-              <>
-                <IconLink size={17} />
-                Copiar link da partida
-              </>
-            )}
-          </Button>
-
-          <Button
-            onClick={() => router.push(`/match/${createdMatchId}`)}
-            className="w-full h-12 gap-2 font-semibold"
-          >
-            Ver partida
-            <IconArrowRight size={17} />
-          </Button>
-
-          <button
-            onClick={() => router.push('/')}
-            className="w-full text-sm text-muted-foreground hover:text-foreground transition-colors py-2"
-          >
-            Ir para o feed
-          </button>
-        </div>
-      </div>
-    )
-  }
-
-  if (step === 'preview') {
-    const dateLabel = form.date
-      ? new Date(form.date + 'T00:00').toLocaleDateString('pt-BR', {
-          weekday: 'long',
-          day: 'numeric',
-          month: 'long',
-        })
-      : ''
-
+  if (fetching) {
     return (
       <div className="flex flex-col min-h-screen">
         <header className="flex items-center gap-3 px-4 pt-5 pb-3">
-          <button
-            onClick={() => setStep('form')}
-            className="p-2 -ml-2 rounded-full hover:bg-muted transition-colors"
-          >
-            <IconArrowLeft size={20} />
-          </button>
-          <h1 className="font-semibold text-lg">Confirmar Partida</h1>
+          <div className="h-5 w-5 rounded bg-muted animate-pulse" />
+          <div className="h-5 w-32 rounded bg-muted animate-pulse" />
         </header>
-
-        <div className="px-4 flex-1 space-y-4">
-          <div className="rounded-xl border border-border bg-card p-4 space-y-3">
-            <h2 className="font-semibold text-base">{form.title}</h2>
-
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <IconMapPin size={14} className="shrink-0" />
-              {form.location}
-            </div>
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <IconCalendar size={14} className="shrink-0" />
-              {dateLabel}
-            </div>
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <IconClock size={14} className="shrink-0" />
-              {form.time}
-            </div>
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <IconUsers size={14} className="shrink-0" />
-              {form.maxPlayers} vagas
-            </div>
-            {form.pricePerPlayer > 0 && (
-              <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <IconCurrencyDollar size={14} className="shrink-0" />
-                R$ {form.pricePerPlayer} por pessoa
-              </div>
-            )}
-
-            <div className="flex gap-2 pt-1">
-              <span className="px-2 py-0.5 rounded-full bg-primary/10 text-primary text-xs font-medium">
-                {LEVEL_LABELS[form.level]}
-              </span>
-              <span className="px-2 py-0.5 rounded-full bg-secondary text-secondary-foreground text-xs font-medium">
-                {VISIBILITY_LABELS[form.visibility]}
-              </span>
-            </div>
-          </div>
-
-          <p className="text-sm text-muted-foreground">{VISIBILITY_DESC[form.visibility]}</p>
-        </div>
-
-        <div className="sticky bottom-20 px-4 pt-4 pb-2 bg-background space-y-2">
-          <Button
-            onClick={handleConfirm}
-            className="w-full h-12 text-base font-semibold"
-            size="lg"
-            disabled={loading}
-          >
-            {loading ? 'Criando partida...' : 'Confirmar e Publicar'}
-          </Button>
-          <Button
-            variant="outline"
-            onClick={() => setStep('form')}
-            className="w-full h-11"
-            disabled={loading}
-          >
-            Editar
-          </Button>
+        <div className="px-4 space-y-4 animate-pulse">
+          {[...Array(5)].map((_, i) => (
+            <div key={i} className="h-12 rounded-lg bg-muted" />
+          ))}
         </div>
       </div>
     )
@@ -236,13 +112,13 @@ export default function CreateMatchPage() {
   return (
     <div className="flex flex-col min-h-screen">
       <header className="flex items-center gap-3 px-4 pt-5 pb-3">
-        <Link href="/" className="p-2 -ml-2 rounded-full hover:bg-muted transition-colors">
+        <Link href={`/match/${id}`} className="p-2 -ml-2 rounded-full hover:bg-muted transition-colors">
           <IconArrowLeft size={20} />
         </Link>
-        <h1 className="font-semibold text-lg">Nova Partida</h1>
+        <h1 className="font-semibold text-lg">Editar Partida</h1>
       </header>
 
-      <form onSubmit={handleFormSubmit} className="px-4 space-y-4 flex-1">
+      <form onSubmit={handleSubmit} className="px-4 space-y-4 flex-1">
         <div className="space-y-1">
           <label className="text-sm font-medium">Título</label>
           <input
@@ -307,7 +183,6 @@ export default function CreateMatchPage() {
               </button>
             ))}
           </div>
-          {errors.level && <p className="text-xs text-destructive">{errors.level}</p>}
         </div>
 
         <div className="grid grid-cols-2 gap-3">
@@ -354,15 +229,17 @@ export default function CreateMatchPage() {
               </button>
             ))}
           </div>
-          {form.visibility && (
-            <p className="text-xs text-muted-foreground mt-1">{VISIBILITY_DESC[form.visibility]}</p>
-          )}
-          {errors.visibility && <p className="text-xs text-destructive">{errors.visibility}</p>}
+          <p className="text-xs text-muted-foreground mt-1">{VISIBILITY_DESC[form.visibility]}</p>
         </div>
 
         <div className="sticky bottom-20 pt-4 pb-2 bg-background">
-          <Button type="submit" className="w-full h-12 text-base font-semibold" size="lg">
-            Revisar Partida →
+          <Button
+            type="submit"
+            className="w-full h-12 text-base font-semibold"
+            size="lg"
+            disabled={loading}
+          >
+            {loading ? 'Salvando...' : 'Salvar alterações'}
           </Button>
         </div>
       </form>

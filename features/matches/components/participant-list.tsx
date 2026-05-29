@@ -25,6 +25,7 @@ const statusLabel: Record<ParticipantStatus, string> = {
   pending: 'Aguardando',
   rejected: 'Recusado',
   waitlist: 'Lista de espera',
+  left: 'Desistiu',
 }
 
 export function ParticipantList({ matchId, participants, maxPlayers, isHost }: ParticipantListProps) {
@@ -56,6 +57,7 @@ export function ParticipantList({ matchId, participants, maxPlayers, isHost }: P
         {participants.map(({ userId, user }) => {
           const status = statuses[userId]
           const isPending = status === 'pending'
+          const hasLeft = status === 'left'
           const isLoading = loading === userId
 
           return (
@@ -70,12 +72,14 @@ export function ParticipantList({ matchId, participants, maxPlayers, isHost }: P
               </div>
 
               <div className="flex-1 min-w-0">
-                <p className="font-medium text-sm truncate">{user?.name ?? 'Usuário'}</p>
+                <p className={`font-medium text-sm truncate ${hasLeft ? 'line-through text-muted-foreground' : ''}`}>
+                  {user?.name ?? 'Usuário'}
+                </p>
                 <p
                   className={`text-xs ${
                     status === 'confirmed' || status === 'host'
                       ? 'text-green-600'
-                      : status === 'rejected'
+                      : status === 'rejected' || status === 'left'
                       ? 'text-red-500'
                       : status === 'waitlist'
                       ? 'text-yellow-600'
@@ -86,7 +90,7 @@ export function ParticipantList({ matchId, participants, maxPlayers, isHost }: P
                 </p>
               </div>
 
-              {isHost && isPending && (
+              {isHost && isPending && !hasLeft && (
                 <div className="flex items-center gap-1 shrink-0">
                   <button
                     disabled={isLoading}
