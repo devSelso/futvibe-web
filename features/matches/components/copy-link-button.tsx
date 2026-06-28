@@ -2,18 +2,25 @@
 
 import { useState } from 'react'
 import { IconLink, IconCheck } from '@tabler/icons-react'
+import { useToast } from '@/lib/providers/toast-context'
 
 interface CopyLinkButtonProps {
   url: string
 }
 
 export function CopyLinkButton({ url }: CopyLinkButtonProps) {
+  const { addToast } = useToast()
   const [copied, setCopied] = useState(false)
 
   async function handleCopy() {
-    await navigator.clipboard.writeText(url)
-    setCopied(true)
-    setTimeout(() => setCopied(false), 2500)
+    try {
+      await navigator.clipboard.writeText(url)
+      setCopied(true)
+      addToast('Link copiado!', 'success')
+      setTimeout(() => setCopied(false), 2500)
+    } catch {
+      addToast('Não foi possível copiar o link.', 'error')
+    }
   }
 
   return (

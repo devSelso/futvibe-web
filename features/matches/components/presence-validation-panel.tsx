@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { IconCheck, IconX, IconClockHour4 } from '@tabler/icons-react'
 import { Button } from '@/lib/components/ui/button'
 import { validatePresence } from '@/features/matches/services/match-service'
+import { useToast } from '@/lib/providers/toast-context'
 import type { Participant } from '@/features/matches/types'
 
 interface PresenceValidationPanelProps {
@@ -14,13 +15,13 @@ interface PresenceValidationPanelProps {
 
 export function PresenceValidationPanel({ matchId, participants }: PresenceValidationPanelProps) {
   const router = useRouter()
+  const { addToast } = useToast()
   const confirmed = participants.filter((p) => p.status === 'confirmed')
   const [presence, setPresence] = useState<Record<string, boolean>>(
     Object.fromEntries(confirmed.map((p) => [p.userId, true]))
   )
   const [loading, setLoading] = useState(false)
   const [done, setDone] = useState(false)
-  const [error, setError] = useState<string | null>(null)
 
   function toggle(userId: string) {
     setPresence((prev) => ({ ...prev, [userId]: !prev[userId] }))
@@ -28,14 +29,14 @@ export function PresenceValidationPanel({ matchId, participants }: PresenceValid
 
   async function handleSubmit() {
     setLoading(true)
-    setError(null)
     try {
       const validations = Object.entries(presence).map(([userId, present]) => ({ userId, present }))
       await validatePresence(matchId, validations)
       setDone(true)
+      addToast('Presenças registradas!', 'success')
       setTimeout(() => router.refresh(), 1500)
     } catch {
-      setError('Erro ao salvar. Tente novamente.')
+      addToast('Erro ao salvar presenças. Tente novamente.', 'error')
     } finally {
       setLoading(false)
     }
@@ -82,8 +83,6 @@ export function PresenceValidationPanel({ matchId, participants }: PresenceValid
           )
         })}
       </div>
-
-      {error && <p className="text-sm text-destructive">{error}</p>}
 
       {done ? (
         <div className="flex items-center gap-2 px-3 py-3 rounded-lg bg-green-50 border border-green-200 text-green-700 text-sm font-medium">

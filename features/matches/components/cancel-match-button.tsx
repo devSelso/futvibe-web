@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { IconBan, IconAlertTriangle } from '@tabler/icons-react'
 import { Button } from '@/lib/components/ui/button'
 import { cancelMatch } from '@/features/matches/services/match-service'
+import { useToast } from '@/lib/providers/toast-context'
 
 interface CancelMatchButtonProps {
   matchId: string
@@ -12,18 +13,17 @@ interface CancelMatchButtonProps {
 
 export function CancelMatchButton({ matchId }: CancelMatchButtonProps) {
   const router = useRouter()
+  const { addToast } = useToast()
   const [confirming, setConfirming] = useState(false)
   const [loading, setLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
 
   async function handleCancel() {
     setLoading(true)
-    setError(null)
     try {
       await cancelMatch(matchId)
       router.refresh()
     } catch {
-      setError('Erro ao cancelar. Tente novamente.')
+      addToast('Erro ao cancelar. Tente novamente.', 'error')
       setLoading(false)
     }
   }
@@ -38,7 +38,6 @@ export function CancelMatchButton({ matchId }: CancelMatchButtonProps) {
         <p className="text-xs text-muted-foreground">
           A partida ficará visível no histórico de todos os participantes como "Cancelada". Esta ação não pode ser desfeita.
         </p>
-        {error && <p className="text-xs text-destructive">{error}</p>}
         <div className="flex gap-2">
           <Button
             variant="outline"

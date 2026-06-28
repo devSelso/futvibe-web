@@ -7,6 +7,7 @@ import { IconEye, IconEyeOff, IconUserPlus } from '@tabler/icons-react'
 import { Button } from '@/lib/components/ui/button'
 import { register } from '@/features/profile/services/auth-service'
 import { registerSchema } from '@/features/auth/form-schemas/register-schema'
+import { CityPicker } from '@/features/matches/components/city-picker'
 import type { RegisterInput } from '@/features/auth/form-schemas/register-schema'
 
 const LEVEL_OPTIONS = [
@@ -25,6 +26,7 @@ export default function RegisterPage() {
     email: '',
     password: '',
     level: 'beginner',
+    city: '',
   })
   const [showPassword, setShowPassword] = useState(false)
   const [loading, setLoading] = useState(false)
@@ -117,6 +119,15 @@ export default function RegisterPage() {
             </button>
           </div>
           {fieldErrors.password && <p className="text-xs text-destructive">{fieldErrors.password}</p>}
+        </div>
+
+        <div className="space-y-1">
+          <label className="text-sm font-medium">Cidade</label>
+          <CityPicker
+            value={form.city}
+            onChange={(v) => handleChange('city', v)}
+          />
+          {fieldErrors.city && <p className="text-xs text-destructive">{fieldErrors.city}</p>}
         </div>
 
         <div className="space-y-1">

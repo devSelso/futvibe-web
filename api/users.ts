@@ -5,6 +5,7 @@ export interface UpdateProfilePayload {
   name: string
   bio?: string
   level: string
+  city: string
 }
 
 export async function apiGetCurrentUser(): Promise<User> {

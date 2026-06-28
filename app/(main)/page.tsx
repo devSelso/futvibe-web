@@ -1,17 +1,27 @@
-import Link from 'next/link'
-import { IconCirclePlus, IconBallVolleyball } from '@tabler/icons-react'
+import { cookies } from 'next/headers'
 import { fetchMatches } from '@/features/matches/services/match-service'
 import { fetchBanners } from '@/features/promotions/services/banner-service'
-import { MatchCard } from '@/features/matches/components/match-card'
+import { MatchFeed } from '@/features/matches/components/match-feed'
 import { LocationFilter } from '@/features/matches/components/location-filter'
+import { PriceFilter } from '@/features/matches/components/price-filter'
 import { Banner } from '@/lib/components/banner'
+import { CITY_COOKIE } from '@/lib/constants'
 
 export default async function FeedPage(props: PageProps<'/'>) {
   const searchParams = await props.searchParams
-  const location = searchParams.location as string | undefined
+  const cookieStore = await cookies()
 
-  const [matches, banners] = await Promise.all([
-    fetchMatches({ location }),
+  const locationParam = searchParams.location as string | undefined
+  const rawMaxPrice = searchParams.maxPrice
+  const maxPriceParam = rawMaxPrice !== undefined && !isNaN(Number(rawMaxPrice)) ? Number(rawMaxPrice) : undefined
+  const rawCity = cookieStore.get(CITY_COOKIE)?.value
+  const cityFromCookie = rawCity ? decodeURIComponent(rawCity) : undefined
+
+  const effectiveLocation = locationParam ?? cityFromCookie
+  const filters = { location: effectiveLocation, maxPrice: maxPriceParam }
+
+  const [initialMatches, banners] = await Promise.all([
+    fetchMatches({ ...filters, page: 1, limit: 10 }),
     fetchBanners(),
   ])
 
@@ -26,39 +36,18 @@ export default async function FeedPage(props: PageProps<'/'>) {
 
       <Banner slides={banners} />
 
-      <LocationFilter value={location} />
+      <LocationFilter value={effectiveLocation} />
+      <PriceFilter value={maxPriceParam} />
 
       <div>
         <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-3">
           Partidas
         </h2>
-
-        {matches.length === 0 ? (
-          <div className="flex flex-col items-center gap-4 py-14 text-center">
-            <IconBallVolleyball size={40} className="text-muted-foreground" />
-            <div>
-              <p className="font-semibold">Nenhuma partida por aqui</p>
-              <p className="text-sm text-muted-foreground mt-1">
-                {location
-                  ? `Nenhuma partida encontrada em "${location}".`
-                  : 'Seja o primeiro a criar uma partida na sua região.'}
-              </p>
-            </div>
-            <Link
-              href="/match/create"
-              className="flex items-center gap-2 h-11 px-5 rounded-full bg-primary text-primary-foreground text-sm font-semibold"
-            >
-              <IconCirclePlus size={16} />
-              Criar partida
-            </Link>
-          </div>
-        ) : (
-          <div className="flex flex-col gap-3">
-            {matches.map((match) => (
-              <MatchCard key={match.id} match={match} />
-            ))}
-          </div>
-        )}
+        <MatchFeed
+          initialMatches={initialMatches}
+          filters={filters}
+          effectiveLocation={effectiveLocation}
+        />
       </div>
     </div>
   )

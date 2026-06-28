@@ -9,7 +9,6 @@ import { MatchActions } from '@/features/matches/components/match-actions'
 import { ParticipantList } from '@/features/matches/components/participant-list'
 import { PresenceValidationPanel } from '@/features/matches/components/presence-validation-panel'
 import { RateParticipantsPanel } from '@/features/matches/components/rate-participants-panel'
-import { DeleteMatchButton } from '@/features/matches/components/delete-match-button'
 import { CancelMatchButton } from '@/features/matches/components/cancel-match-button'
 import { headers } from 'next/headers'
 import { SESSION_COOKIE } from '@/lib/constants'
@@ -150,10 +149,6 @@ export default async function MatchDetailPage(props: PageProps<'/match/[id]'>) {
 
         {isHost && (match.status === 'scheduled' || match.status === 'pendingvalidation') && (
           <CancelMatchButton matchId={id} />
-        )}
-
-        {isHost && match.status === 'scheduled' && (
-          <DeleteMatchButton matchId={id} />
         )}
 
         <ParticipantList

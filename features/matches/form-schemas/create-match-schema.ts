@@ -4,7 +4,8 @@ const today = () => new Date().toISOString().split('T')[0]
 
 export const createMatchSchema = z.object({
   title: z.string().min(3, 'Título deve ter ao menos 3 caracteres'),
-  location: z.string().min(3, 'Local deve ter ao menos 3 caracteres'),
+  location: z.string().min(2, 'Local deve ter ao menos 2 caracteres'),
+  city: z.string().min(2, 'Selecione uma cidade'),
   date: z
     .string()
     .min(1, 'Data obrigatória')

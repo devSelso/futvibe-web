@@ -4,12 +4,14 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import {
   IconArrowLeft, IconMapPin, IconCalendar, IconClock,
-  IconUsers, IconCurrencyDollar, IconLink, IconCheck, IconArrowRight,
+  IconUsers, IconCurrencyDollar, IconShare2, IconCheck, IconArrowRight,
 } from '@tabler/icons-react'
 import Link from 'next/link'
 import { Button } from '@/lib/components/ui/button'
 import { submitNewMatch } from '@/features/matches/services/match-service'
 import { createMatchSchema } from '@/features/matches/form-schemas/create-match-schema'
+import { CityPicker } from '@/features/matches/components/city-picker'
+import { useShare } from '@/features/matches/hooks/use-share'
 import type { MatchLevel, MatchVisibility } from '@/lib/types'
 
 const LEVEL_LABELS: Record<MatchLevel, string> = {
@@ -39,12 +41,12 @@ export default function CreateMatchPage() {
   const router = useRouter()
   const [step, setStep] = useState<Step>('form')
   const [loading, setLoading] = useState(false)
-  const [copied, setCopied] = useState(false)
   const [createdMatchId, setCreatedMatchId] = useState<string | null>(null)
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [form, setForm] = useState<{
     title: string
     location: string
+    city: string
     date: string
     time: string
     level: MatchLevel | ''
@@ -54,6 +56,7 @@ export default function CreateMatchPage() {
   }>({
     title: '',
     location: '',
+    city: '',
     date: '',
     time: '',
     level: '',
@@ -61,6 +64,8 @@ export default function CreateMatchPage() {
     maxPlayers: 6,
     visibility: '',
   })
+  const matchUrl = createdMatchId ? `${typeof window !== 'undefined' ? window.location.origin : ''}/match/${createdMatchId}` : ''
+  const { handleShare, copied } = useShare(form.title, matchUrl)
 
   const today = new Date().toISOString().split('T')[0]
   const set = (key: keyof typeof form, value: string | number) =>
@@ -93,13 +98,6 @@ export default function CreateMatchPage() {
     }
   }
 
-  async function handleCopyLink() {
-    if (!createdMatchId) return
-    const url = `${window.location.origin}/match/${createdMatchId}`
-    await navigator.clipboard.writeText(url)
-    setCopied(true)
-    setTimeout(() => setCopied(false), 2000)
-  }
 
   if (step === 'created' && createdMatchId) {
     return (
@@ -114,7 +112,7 @@ export default function CreateMatchPage() {
 
         <div className="w-full max-w-xs space-y-3">
           <Button
-            onClick={handleCopyLink}
+            onClick={handleShare}
             variant="outline"
             className="w-full h-12 gap-2 font-semibold"
           >
@@ -125,8 +123,8 @@ export default function CreateMatchPage() {
               </>
             ) : (
               <>
-                <IconLink size={17} />
-                Copiar link da partida
+                <IconShare2 size={17} />
+                Compartilhar partida
               </>
             )}
           </Button>
@@ -255,10 +253,16 @@ export default function CreateMatchPage() {
         </div>
 
         <div className="space-y-1">
+          <label className="text-sm font-medium">Localidade</label>
+          <CityPicker value={form.city} onChange={(v) => set('city', v)} />
+          {errors.city && <p className="text-xs text-destructive">{errors.city}</p>}
+        </div>
+
+        <div className="space-y-1">
           <label className="text-sm font-medium">Local</label>
           <input
             className={inputClass}
-            placeholder="Ex: Praia de Ipanema, Posto 9"
+            placeholder="Ex: Arena 7, Quadra Central"
             value={form.location}
             onChange={(e) => set('location', e.target.value)}
           />
@@ -361,8 +365,9 @@ export default function CreateMatchPage() {
         </div>
 
         <div className="sticky bottom-20 pt-4 pb-2 bg-background">
-          <Button type="submit" className="w-full h-12 text-base font-semibold" size="lg">
-            Revisar Partida →
+          <Button type="submit" className="w-full h-12 text-base font-semibold gap-2" size="lg">
+            Revisar Partida
+            <IconArrowRight size={17} />
           </Button>
         </div>
       </form>

@@ -4,7 +4,6 @@ import {
   apiGetMyMatches,
   apiCreateMatch,
   apiEditMatch,
-  apiDeleteMatch,
   apiCancelMatch,
   apiJoinMatch,
   apiLeaveMatch,
@@ -44,10 +43,6 @@ export async function joinMatch(matchId: string): Promise<void> {
 
 export async function leaveMatch(matchId: string): Promise<void> {
   return apiLeaveMatch(matchId)
-}
-
-export async function deleteMatch(matchId: string): Promise<void> {
-  return apiDeleteMatch(matchId)
 }
 
 export async function cancelMatch(matchId: string): Promise<void> {

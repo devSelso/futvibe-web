@@ -13,6 +13,7 @@ export interface Match {
   id: string
   title: string
   location: string
+  city: string
   date: string
   time: string
   level: MatchLevel
@@ -27,6 +28,7 @@ export interface Match {
 
 export interface MatchFilters {
   location?: string
+  maxPrice?: number
   page?: number
   limit?: number
 }

@@ -7,6 +7,7 @@ export const registerSchema = z.object({
   level: z.enum(['beginner', 'intermediate', 'advanced'], {
     message: 'Selecione um nível',
   }),
+  city: z.string().min(2, 'Cidade obrigatória').max(100),
 })
 
 export type RegisterInput = z.infer<typeof registerSchema>

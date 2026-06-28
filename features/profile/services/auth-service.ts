@@ -5,14 +5,14 @@ import type { RegisterInput } from '@/features/auth/form-schemas/register-schema
 export async function login(email: string, password: string): Promise<boolean> {
   const result = await apiLogin(email, password)
   if (!result) return false
-  saveSession(result.token, result.user.id)
+  saveSession(result.token, result.user.id, result.user.city ?? '')
   return true
 }
 
 export async function register(payload: RegisterInput): Promise<boolean> {
   const result = await apiRegister(payload)
   if (!result) return false
-  saveSession(result.token, result.user.id)
+  saveSession(result.token, result.user.id, result.user.city ?? '')
   return true
 }
 

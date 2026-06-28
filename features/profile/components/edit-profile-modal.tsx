@@ -1,10 +1,13 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { IconX } from '@tabler/icons-react'
 import { Button } from '@/lib/components/ui/button'
 import { useUpdateProfile } from '@/features/profile/hooks/use-update-profile'
 import { editProfileSchema } from '@/features/profile/form-schemas/edit-profile-schema'
+import { useToast } from '@/lib/providers/toast-context'
+import { updateCity } from '@/lib/auth'
+import { CityPicker } from '@/features/matches/components/city-picker'
 import type { MatchLevel } from '@/features/matches/types'
 import type { User } from '@/features/profile/types'
 
@@ -22,10 +25,18 @@ interface Props {
 
 export function EditProfileModal({ user, onClose, onSave }: Props) {
   const updateProfile = useUpdateProfile()
+  const { addToast } = useToast()
+
+  useEffect(() => {
+    const prev = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    return () => { document.body.style.overflow = prev }
+  }, [])
   const [form, setForm] = useState({
     name: user.name,
     bio: user.bio ?? '',
     level: user.level,
+    city: user.city ?? '',
   })
   const [errors, setErrors] = useState<Record<string, string>>({})
 
@@ -41,15 +52,15 @@ export function EditProfileModal({ user, onClose, onSave }: Props) {
       return
     }
     updateProfile.mutate(
-      { name: result.data.name, bio: result.data.bio, level: result.data.level },
-      { onSuccess: () => { onSave(); onClose() } }
+      { name: result.data.name, bio: result.data.bio, level: result.data.level, city: result.data.city },
+      { onSuccess: () => { updateCity(result.data.city); onSave(); onClose(); addToast('Perfil atualizado!', 'success') } }
     )
   }
 
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
       <div className="absolute inset-0 bg-black/50" onClick={onClose} />
-      <div className="relative bg-background rounded-t-2xl sm:rounded-2xl w-full sm:max-w-md p-5 space-y-4">
+      <div className="relative bg-background rounded-t-2xl sm:rounded-2xl w-full sm:max-w-md max-h-[90dvh] overflow-y-auto p-5 pb-6 sm:pb-5 space-y-4">
         <div className="flex items-center justify-between">
           <h2 className="font-semibold text-base">Editar Perfil</h2>
           <button onClick={onClose} className="p-1 rounded-full hover:bg-muted transition-colors">
@@ -65,6 +76,15 @@ export function EditProfileModal({ user, onClose, onSave }: Props) {
             onChange={(e) => setForm((p) => ({ ...p, name: e.target.value }))}
           />
           {errors.name && <p className="text-xs text-destructive">{errors.name}</p>}
+        </div>
+
+        <div className="space-y-1">
+          <label className="text-sm font-medium">Cidade</label>
+          <CityPicker
+            value={form.city}
+            onChange={(v) => setForm((p) => ({ ...p, city: v }))}
+          />
+          {errors.city && <p className="text-xs text-destructive">{errors.city}</p>}
         </div>
 
         <div className="space-y-1">

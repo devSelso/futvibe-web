@@ -12,6 +12,7 @@ interface RegisterRequest {
   email: string
   password: string
   level: MatchLevel
+  city: string
 }
 
 export async function apiLogin(email: string, password: string): Promise<AuthResponse | null> {

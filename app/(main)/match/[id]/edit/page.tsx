@@ -7,6 +7,7 @@ import Link from 'next/link'
 import { Button } from '@/lib/components/ui/button'
 import { editMatch, fetchMatchById } from '@/features/matches/services/match-service'
 import { createMatchSchema } from '@/features/matches/form-schemas/create-match-schema'
+import { CityPicker } from '@/features/matches/components/city-picker'
 import type { MatchLevel, MatchVisibility } from '@/lib/types'
 import { useEffect } from 'react'
 
@@ -40,6 +41,7 @@ export default function EditMatchPage({ params }: { params: Promise<{ id: string
   const [form, setForm] = useState({
     title: '',
     location: '',
+    city: '',
     date: '',
     time: '',
     level: 'intermediate' as MatchLevel,
@@ -58,6 +60,7 @@ export default function EditMatchPage({ params }: { params: Promise<{ id: string
         setForm({
           title: match.title,
           location: match.location,
+          city: match.city,
           date: match.date,
           time: match.time,
           level: match.level,
@@ -131,10 +134,16 @@ export default function EditMatchPage({ params }: { params: Promise<{ id: string
         </div>
 
         <div className="space-y-1">
+          <label className="text-sm font-medium">Localidade</label>
+          <CityPicker value={form.city} onChange={(v) => set('city', v)} />
+          {errors.city && <p className="text-xs text-destructive">{errors.city}</p>}
+        </div>
+
+        <div className="space-y-1">
           <label className="text-sm font-medium">Local</label>
           <input
             className={inputClass}
-            placeholder="Ex: Praia de Ipanema, Posto 9"
+            placeholder="Ex: Arena 7, Quadra Central"
             value={form.location}
             onChange={(e) => set('location', e.target.value)}
           />

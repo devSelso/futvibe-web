@@ -1,8 +1,9 @@
 ﻿'use client'
 
 import { useState } from 'react'
-import { IconCircleCheck, IconCircleX } from '@tabler/icons-react'
+import { IconCircleCheck, IconCircleX, IconLoader2 } from '@tabler/icons-react'
 import { setParticipantStatus } from '@/features/matches/services/match-service'
+import { useToast } from '@/lib/providers/toast-context'
 import type { ParticipantStatus } from '@/features/matches/types'
 import type { User } from '@/features/profile/types'
 
@@ -29,6 +30,7 @@ const statusLabel: Record<ParticipantStatus, string> = {
 }
 
 export function ParticipantList({ matchId, participants, maxPlayers, isHost }: ParticipantListProps) {
+  const { addToast } = useToast()
   const [statuses, setStatuses] = useState<Record<string, ParticipantStatus>>(
     Object.fromEntries(participants.map((p) => [p.userId, p.status]))
   )
@@ -39,6 +41,9 @@ export function ParticipantList({ matchId, participants, maxPlayers, isHost }: P
     try {
       await setParticipantStatus(matchId, userId, newStatus)
       setStatuses((prev) => ({ ...prev, [userId]: newStatus }))
+      addToast(newStatus === 'confirmed' ? 'Jogador confirmado!' : 'Jogador recusado.', newStatus === 'confirmed' ? 'success' : 'info')
+    } catch {
+      addToast('Erro ao atualizar status. Tente novamente.', 'error')
     } finally {
       setLoading(null)
     }
@@ -92,22 +97,30 @@ export function ParticipantList({ matchId, participants, maxPlayers, isHost }: P
 
               {isHost && isPending && !hasLeft && (
                 <div className="flex items-center gap-1 shrink-0">
-                  <button
-                    disabled={isLoading}
-                    onClick={() => handleAction(userId, 'confirmed')}
-                    className="p-1.5 rounded-full text-green-600 hover:bg-green-50 disabled:opacity-40 transition-colors"
-                    title="Aprovar"
-                  >
-                    <IconCircleCheck size={18} />
-                  </button>
-                  <button
-                    disabled={isLoading}
-                    onClick={() => handleAction(userId, 'rejected')}
-                    className="p-1.5 rounded-full text-red-500 hover:bg-red-50 disabled:opacity-40 transition-colors"
-                    title="Recusar"
-                  >
-                    <IconCircleX size={18} />
-                  </button>
+                  {isLoading ? (
+                    <div role="status" aria-label={`Processando ${user?.name ?? 'participante'}`}>
+                      <IconLoader2 size={18} className="animate-spin text-muted-foreground mx-1" />
+                    </div>
+                  ) : (
+                    <>
+                      <button
+                        type="button"
+                        onClick={() => handleAction(userId, 'confirmed')}
+                        className="p-1.5 rounded-full text-green-600 hover:bg-green-50 transition-colors"
+                        aria-label={`Aprovar ${user?.name ?? 'participante'}`}
+                      >
+                        <IconCircleCheck size={18} />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleAction(userId, 'rejected')}
+                        className="p-1.5 rounded-full text-red-500 hover:bg-red-50 transition-colors"
+                        aria-label={`Recusar ${user?.name ?? 'participante'}`}
+                      >
+                        <IconCircleX size={18} />
+                      </button>
+                    </>
+                  )}
                 </div>
               )}
             </div>

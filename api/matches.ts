@@ -4,6 +4,7 @@ import type { Match, MatchFilters, ParticipantStatus } from '@/features/matches/
 export async function apiGetMatches(filters?: MatchFilters): Promise<Match[]> {
   const params: Record<string, unknown> = {}
   if (filters?.location) params.location = filters.location
+  if (filters?.maxPrice !== undefined) params.maxPrice = filters.maxPrice
   if (filters?.page) params.page = filters.page
   if (filters?.limit) params.limit = filters.limit
   const { data } = await client.get<Match[]>('/matches', { params })
@@ -24,7 +25,7 @@ export async function apiGetMyMatches(): Promise<Match[]> {
   return data
 }
 
-export async function apiCreateMatch(payload: Omit<Match, 'id' | 'participants'>): Promise<Match> {
+export async function apiCreateMatch(payload: Omit<Match, 'id' | 'participants' | 'participantCount'>): Promise<Match> {
   const { data } = await client.post<Match>('/matches', payload)
   return data
 }
@@ -39,10 +40,6 @@ export async function apiJoinMatch(matchId: string): Promise<void> {
 
 export async function apiLeaveMatch(matchId: string): Promise<void> {
   await client.delete(`/matches/${matchId}/leave`)
-}
-
-export async function apiDeleteMatch(matchId: string): Promise<void> {
-  await client.delete(`/matches/${matchId}`)
 }
 
 export async function apiCancelMatch(matchId: string): Promise<void> {
